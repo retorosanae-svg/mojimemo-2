@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="文字組みメモ">
+<meta name="format-detection" content="telephone=no">
+<title>文字組みメモ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+:root{
+  --paper:#FFFFFF;--surface:#F4F4F1;--fill:rgba(30,34,39,.07);--seg-on:#FFFFFF;
+  --rule:#E3E4DF;--ink:#1E2227;--ink-soft:#686D74;
+  --accent:#22508F;--on-accent:#FFFFFF;--accent-soft:rgba(34,80,143,.1);
+  --track:#D6D8D3;--tick:rgba(104,109,116,.55);
+  --shadow:0 -12px 40px rgba(18,22,28,.16);
+  --scroll-thumb:#686D74;--scroll-thumb-hover:#474B51;--scroll-track:#E3E4DF;--scroll-halo:rgba(255,255,255,.85);
+  --font-ui:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo","Noto Sans JP","Noto Sans CJK JP",sans-serif;
+  --note-font:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic Medium","Meiryo",sans-serif;
+  --note-size:17px;--note-lh:1.8;--note-ls:.05em;--note-weight:400;--note-align:left;
+  --head-h:52px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+/* 最初に表示するときの色（すぐに JS が、表示モードと選んだ配色に合わせて上書きする） */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#17191C;--surface:#202327;--fill:rgba(227,229,232,.1);--seg-on:#3F4246;
+    --rule:#2E3237;--ink:#E3E5E8;--ink-soft:#9A9FA7;
+    --accent:#8FB2EC;--on-accent:#17191C;--accent-soft:rgba(143,178,236,.16);
+    --track:#3B3F46;--tick:rgba(154,159,167,.55);
+    --shadow:0 -12px 40px rgba(0,0,0,.5);
+    --scroll-thumb:#9A9FA7;--scroll-thumb-hover:#BBBFC4;--scroll-track:#2E3237;--scroll-halo:rgba(23,25,28,.85);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#17191C;--surface:#202327;--fill:rgba(227,229,232,.1);--seg-on:#3F4246;
+  --rule:#2E3237;--ink:#E3E5E8;--ink-soft:#9A9FA7;
+  --accent:#8FB2EC;--on-accent:#17191C;--accent-soft:rgba(143,178,236,.16);
+  --track:#3B3F46;--tick:rgba(154,159,167,.55);
+  --shadow:0 -12px 40px rgba(0,0,0,.5);
+  --scroll-thumb:#9A9FA7;--scroll-thumb-hover:#BBBFC4;--scroll-track:#2E3237;--scroll-halo:rgba(23,25,28,.85);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--paper)}
+body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:var(--font-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,textarea{font:inherit;color:inherit}
+button{margin:0;padding:0;border:0;background:none;cursor:pointer;touch-action:manipulation}
+button:disabled{cursor:default;opacity:.55}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.app{max-width:760px;margin:0 auto}
+.view{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh}
+.bar{background:var(--paper)}
+
+.icon-btn{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;color:var(--accent)}
+.icon-btn:active{background:var(--accent-soft)}
+.icon-btn svg{width:23px;height:23px}
+.aa{font-size:20px;font-weight:600;line-height:1;letter-spacing:.01em}
+.aa small{font-size:15px;font-weight:600}
+.text-btn{height:44px;padding:0 12px;border-radius:12px;color:var(--accent);font-size:16px;font-weight:600;white-space:nowrap}
+.text-btn:active{background:var(--accent-soft)}
+.text-btn.subtle{font-weight:400}
+
+/* 一覧 */
+.list-head{padding:calc(var(--safe-top) + 12px) 16px 8px 20px}
+.list-head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.head-buttons{display:flex;align-items:center;gap:2px}
+.mode-icon{display:none}
+#modeBtn[data-mode="auto"] .mode-icon[data-for="auto"],#modeBtn[data-mode="light"] .mode-icon[data-for="light"],#modeBtn[data-mode="dark"] .mode-icon[data-for="dark"]{display:block}
+.list-title{margin:0;font-family:var(--note-font);font-size:32px;font-weight:700;line-height:1.25;letter-spacing:.04em}
+.search{display:flex;align-items:center;gap:6px;height:40px;margin:10px 4px 0 0;padding:0 10px;border-radius:11px;background:var(--fill);color:var(--ink-soft);cursor:text}
+.search svg{flex:none;width:18px;height:18px}
+.search input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;outline:0;background:transparent;font-size:16px;color:var(--ink);-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:var(--ink-soft);opacity:1}
+.search:focus-within{box-shadow:0 0 0 2px var(--accent)}
+
+.list-main{flex:1;padding-bottom:12px}
+.note-list{list-style:none;margin:6px 0 0;padding:0}
+.note-row{position:relative;display:block;width:100%;padding:13px 20px;text-align:left}
+.note-row::after{content:"";position:absolute;left:20px;right:0;bottom:0;border-bottom:1px solid var(--rule)}
+.note-list li:last-child .note-row::after{display:none}
+.note-row:active{background:var(--accent-soft)}
+.note-row:focus-visible{outline-offset:-2px}
+.note-title{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:var(--note-font);font-size:17px;font-weight:700;line-height:1.45;letter-spacing:min(var(--note-ls),.1em)}
+.note-title.is-empty{color:var(--ink-soft);font-weight:400}
+.note-meta{display:flex;gap:12px;margin-top:3px;font-size:14px;line-height:1.45;color:var(--ink-soft)}
+.note-date{flex:none;font-variant-numeric:tabular-nums}
+.note-snippet{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:var(--note-font);letter-spacing:min(var(--note-ls),.1em)}
+.list-state{padding:56px 32px;text-align:center}
+.state-title{margin:0;font-size:17px;font-weight:600}
+.state-sub{margin:6px 0 0;color:var(--ink-soft)}
+
+.list-foot{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px calc(10px + var(--safe-bottom)) 20px;border-top:1px solid var(--rule)}
+.count{font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.primary-btn{display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 18px 0 15px;border-radius:22px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:600}
+.primary-btn svg{width:19px;height:19px}
+.primary-btn:active{filter:brightness(.9)}
+
+/* 編集 */
+.editor-head{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:calc(var(--head-h) + var(--safe-top));padding:var(--safe-top) 6px 0 4px;border-bottom:1px solid transparent;transition:border-color .2s}
+.editor-head.scrolled{border-bottom-color:var(--rule)}
+.back-btn{justify-self:start;display:inline-flex;align-items:center;height:44px;padding:0 10px 0 2px;border-radius:12px;color:var(--accent);font-size:17px}
+.back-btn svg{width:26px;height:26px}
+.back-btn:active{background:var(--accent-soft)}
+.head-center{display:flex;flex-direction:column;align-items:center;min-width:0;line-height:1.3}
+.char-count{font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.save-state{min-height:14px;font-size:11px;color:var(--ink-soft);white-space:nowrap}
+.save-state[data-state="saving"]{opacity:.7}
+.save-state[data-state="error"]{color:var(--ink);font-weight:700}
+.head-actions{justify-self:end;display:flex;align-items:center}
+.del-btn,.done-btn{width:52px;padding:0}
+.done-btn{display:none}
+.typing .done-btn{display:inline-block}
+.typing .del-btn{display:none}
+
+/* 本文：同じ組版の見えない textarea で高さを測るので、どの文字サイズでも高さが本文にぴったり合う。
+   左右の余白（--pad-l / --pad-r）は、1行にちょうど何文字か収まるように JS で決める。 */
+.grow{position:relative;flex:1;min-width:0}
+.note-text{
+  display:block;width:100%;margin:0;border:0;border-radius:0;
+  padding:12px var(--pad-r,20px) 0 var(--pad-l,20px);
+  font-family:var(--note-font);font-size:var(--note-size);line-height:var(--note-lh);letter-spacing:var(--note-ls);font-weight:var(--note-weight);text-align:var(--note-align);
+  white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;line-break:strict;tab-size:4;
+  background:transparent;color:var(--ink);
+  resize:none;overflow:hidden;outline:0;-webkit-appearance:none;appearance:none;
+}
+#editor{min-height:calc(100vh - var(--head-h) - var(--safe-top));min-height:calc(100dvh - var(--head-h) - var(--safe-top));padding-bottom:40vh;caret-color:var(--accent)}
+#editor::placeholder{color:var(--ink-soft);opacity:.75}
+.measure{position:absolute;left:0;top:0;z-index:-1;height:0!important;min-height:0!important;visibility:hidden;pointer-events:none}
+.probe-box{position:fixed;left:0;top:0;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none}
+.probe{position:absolute;left:0;top:0;white-space:pre;font-family:var(--note-font);font-size:var(--note-size);letter-spacing:var(--note-ls);font-weight:var(--note-weight);line-height:1}
+
+/* 表示設定シート */
+.backdrop{position:fixed;inset:0;z-index:19}
+.sheet{position:fixed;z-index:20;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;max-height:66vh;max-height:66dvh;display:flex;flex-direction:column;background:var(--surface);color:var(--ink);border-radius:18px 18px 0 0;box-shadow:var(--shadow);transform:translateY(calc(100% + 24px));transition:transform .34s cubic-bezier(.2,.85,.25,1)}
+.sheet.open{transform:none}
+.sheet-grip{flex:none;width:38px;height:5px;margin:8px auto 2px;border-radius:3px;background:var(--track)}
+.sheet-head{flex:none;display:flex;align-items:center;gap:2px;padding:0 8px 4px 20px}
+.sheet-title{flex:1;margin:0;font-size:17px;font-weight:700}
+.sheet-title:focus{outline:0}
+.sheet-body{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 20px calc(20px + var(--safe-bottom))}
+
+.specimen{height:clamp(116px,calc(var(--note-size) * var(--note-lh) * 2.6 + 24px),210px);margin:4px 0 6px;padding:12px var(--pad-r,20px) 12px var(--pad-l,20px);overflow:hidden;border:1px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink);font-family:var(--note-font);font-size:var(--note-size);line-height:var(--note-lh);letter-spacing:var(--note-ls);font-weight:var(--note-weight);text-align:var(--note-align);line-break:strict;overflow-wrap:break-word;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent)}
+.sheet[data-context="editor"] .specimen{display:none}
+
+.ctl{padding:10px 0 8px}
+.ctl + .ctl{border-top:1px solid var(--rule)}
+.ctl-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ctl-label{font-size:15px;font-weight:600}
+.ctl-value{font-size:15px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.ctl-row{display:flex;align-items:center;gap:4px;margin:0 -8px}
+.step{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;font-size:22px;line-height:1;color:var(--ink)}
+.step:active{background:var(--fill)}
+.step:disabled{color:var(--track);opacity:1}
+
+/* 目盛り付きのゲージ：細い刻みと、標準値の位置を示す長い刻み */
+.gauge{position:relative;flex:1;height:44px}
+.gauge-ticks{position:absolute;left:14px;right:14px;top:31px;height:5px;border-right:1px solid var(--tick);background-image:linear-gradient(to right,var(--tick) 1px,transparent 1px);background-size:calc(100% / var(--cells,8)) 100%;background-repeat:repeat-x}
+.gauge-notch{position:absolute;top:28px;left:calc(14px + (100% - 28px) * var(--def,.5));width:2px;height:11px;margin-left:-1px;border-radius:1px;background:var(--ink-soft)}
+.gauge input{position:absolute;inset:0;z-index:1;width:100%;height:44px;margin:0;padding:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+.gauge input:focus-visible{outline:0}
+.gauge input::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--accent) calc(14px + (100% - 28px) * var(--frac,.5)),var(--track) 0)}
+.gauge input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;margin-top:-12px;border:0;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.18),0 3px 8px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.08)}
+.gauge input:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--accent),0 3px 8px rgba(0,0,0,.14)}
+.gauge input::-moz-range-track{height:4px;border-radius:2px;background:var(--track)}
+.gauge input::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+.gauge input::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.18),0 3px 8px rgba(0,0,0,.14)}
+.gauge input:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--accent)}
+
+.ctl-inline{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.seg{flex:0 1 230px;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;padding:2px;border-radius:10px;background:var(--fill)}
+.seg label{position:relative;display:block}
+.seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.seg span{display:grid;place-items:center;height:36px;padding:0 6px;border-radius:8px;font-size:14px;white-space:nowrap}
+.seg input:checked + span{background:var(--seg-on);box-shadow:0 1px 3px rgba(0,0,0,.14);font-weight:600}
+.seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:1px}
+
+.fonts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.font-opt{position:relative;display:block}
+.font-opt input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.font-opt span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:74px;border:1px solid var(--rule);border-radius:12px;background:var(--paper);color:var(--ink)}
+.font-opt b{font-size:22px;font-weight:400;line-height:1.15;letter-spacing:.02em}
+.font-opt small{font-size:12px;color:var(--ink-soft)}
+.font-opt input:checked + span{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.font-opt input:checked + span small{color:var(--accent);font-weight:600}
+.font-opt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+/* 配色：その配色の紙に、その配色の文字で「あ」を置き、右下にアクセント色の点 */
+.theme-group{margin:12px 0 6px;font-size:12px;color:var(--ink-soft)}
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:10px 4px}
+.theme-opt{position:relative;display:block}
+.theme-opt input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.theme-opt>span{display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0 2px;border-radius:12px}
+.sw{position:relative;display:grid;place-items:center;width:46px;height:46px;border:1px solid var(--rule);border-radius:11px;overflow:hidden;font-style:normal;font-size:19px;font-weight:500;line-height:1}
+.sw::after{content:"";position:absolute;right:6px;bottom:6px;width:7px;height:7px;border-radius:50%;background:var(--dot,transparent)}
+.theme-opt small{font-size:11.5px;line-height:1.3;color:var(--ink-soft);white-space:nowrap}
+.theme-opt input:checked + span .sw{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.theme-opt input:checked + span small{color:var(--ink);font-weight:600}
+.theme-opt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:0}
+.theme-note{margin:10px 0 0;font-size:12px;line-height:1.6;color:var(--ink-soft)}
+.mode-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0 4px}
+.sub-label{font-size:13px;color:var(--ink-soft);white-space:nowrap}
+.mode-row .seg{flex:0 1 240px}
+.theme-group .in-use{margin-left:8px;padding:1px 7px;border-radius:9px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700}
+
+.storage{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--rule)}
+.storage .ctl-label{display:block;margin:0 0 6px}
+.storage-note{margin:0;font-size:12.5px;line-height:1.65;color:var(--ink-soft)}
+.data-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.data-btn{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 15px 0 12px;border-radius:12px;background:var(--fill);color:var(--accent);font-size:14px;font-weight:600}
+.data-btn svg{flex:none;width:18px;height:18px}
+.data-btn:active{background:var(--accent-soft)}
+
+.toast{position:fixed;z-index:30;left:50%;bottom:calc(84px + var(--safe-bottom));display:flex;align-items:center;gap:10px;width:max-content;max-width:calc(100% - 32px);padding:8px 16px;border-radius:14px;background:var(--ink);color:var(--paper);font-size:14px;line-height:1.45;box-shadow:0 10px 30px rgba(0,0,0,.22);opacity:0;transform:translate(-50%,10px);transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast span{padding:6px 0}
+.toast button{flex:none;height:34px;margin-right:-8px;padding:0 12px;border-radius:9px;color:var(--paper);font-weight:700;background:rgba(127,127,127,.28)}
+
+/* スクロールバー：明るい配色でも見えるように、罫線の色の溝に補助文字の色のつまみを置く */
+html{scrollbar-color:var(--scroll-thumb) var(--scroll-track)}
+::-webkit-scrollbar{width:14px;height:14px}
+::-webkit-scrollbar-track{background:var(--scroll-track)}
+::-webkit-scrollbar-thumb{min-height:44px;border:3px solid var(--scroll-track);border-radius:8px;background:var(--scroll-thumb)}
+::-webkit-scrollbar-thumb:hover{background:var(--scroll-thumb-hover)}
+::-webkit-scrollbar-corner{background:var(--scroll-track)}
+
+/* スマホやタブレットは標準のスクロール表示の色を変えられないので、太いつまみを自前で描く（ドラッグもできる） */
+@media (pointer:coarse){
+  html{scrollbar-width:none}
+  ::-webkit-scrollbar{display:none;width:0;height:0}
+}
+.scrollbar{position:fixed;z-index:16;right:0;width:26px;pointer-events:none;opacity:0;transition:opacity .35s}
+.scrollbar.show{opacity:1;transition-duration:.1s}
+.sheet .scrollbar{position:absolute;z-index:2}
+.scroll-thumb{position:absolute;top:0;right:3px;width:7px;border-radius:5px;background:var(--scroll-thumb);box-shadow:0 0 0 1.5px var(--scroll-halo);touch-action:none;will-change:transform;transition:width .15s,background-color .15s}
+.scroll-thumb::before{content:"";position:absolute;top:-10px;bottom:-10px;right:-3px;width:36px}
+.scrollbar.show .scroll-thumb{pointer-events:auto}
+.scrollbar.dragging .scroll-thumb{width:11px;background:var(--scroll-thumb-hover)}
+
+@media (prefers-reduced-motion:reduce){.sheet,.toast,.editor-head,.scrollbar,.scroll-thumb{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="view" id="listView" aria-labelledby="listTitle">
+    <header class="list-head">
+      <div class="list-head-row">
+        <h1 class="list-title" id="listTitle">メモ</h1>
+        <div class="head-buttons">
+          <button type="button" class="icon-btn" id="modeBtn" data-mode="auto" aria-label="表示モードを切り替える">
+            <svg class="mode-icon" data-for="auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>
+            <svg class="mode-icon" data-for="light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+            <svg class="mode-icon" data-for="dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+          </button>
+          <button type="button" class="icon-btn" data-open-settings aria-label="表示設定をひらく"><span class="aa" aria-hidden="true">A<small>a</small></span></button>
+        </div>
+      </div>
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>
+        <span class="sr-only">メモを検索</span>
+        <input type="search" id="search" placeholder="検索" autocomplete="off" autocapitalize="off" enterkeyhint="search">
+      </label>
+    </header>
+    <main class="list-main">
+      <ul class="note-list" id="noteList"></ul>
+      <div class="list-state" id="listState" hidden>
+        <p class="state-title" id="stateTitle"></p>
+        <p class="state-sub" id="stateSub"></p>
+      </div>
+    </main>
+    <footer class="list-foot bar">
+      <span class="count" id="count"></span>
+      <button type="button" class="primary-btn" id="newBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M17.5 3.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        新しいメモ
+      </button>
+    </footer>
+  </section>
+
+  <section class="view" id="editorView" aria-label="メモを編集" hidden>
+    <header class="editor-head bar" id="editorHead">
+      <button type="button" class="back-btn" id="backBtn" aria-label="メモ一覧に戻る">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        <span aria-hidden="true">メモ</span>
+      </button>
+      <div class="head-center">
+        <span class="char-count" id="charCount"></span>
+        <span class="save-state" id="saveState" data-state=""></span>
+      </div>
+      <div class="head-actions">
+        <button type="button" class="icon-btn" data-open-settings aria-label="表示設定をひらく"><span class="aa" aria-hidden="true">A<small>a</small></span></button>
+        <button type="button" class="icon-btn" id="saveFileBtn" aria-label="このメモをファイルに保存">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10"/><path d="M8 10.5l4 4 4-4"/><path d="M5 15.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2.5"/></svg>
+        </button>
+        <button type="button" class="icon-btn del-btn" id="deleteBtn" aria-label="このメモを削除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7h15"/><path d="M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2"/><path d="M6.5 7l.9 12.1A2 2 0 0 0 9.4 21h5.2a2 2 0 0 0 2-1.9L17.5 7"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
+        <button type="button" class="text-btn done-btn" id="doneBtn">完了</button>
+      </div>
+    </header>
+    <div class="grow" id="grow">
+      <textarea id="editor" class="note-text" aria-label="メモ本文" placeholder="ここに書く"></textarea>
+      <textarea id="measure" class="note-text measure" tabindex="-1" aria-hidden="true" readonly autocomplete="off" spellcheck="false"></textarea>
+    </div>
+  </section>
+</div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 class="sheet-title" id="sheetTitle" tabindex="-1">表示設定</h2>
+    <button type="button" class="text-btn subtle" id="resetBtn">標準に戻す</button>
+    <button type="button" class="text-btn" id="closeSheetBtn">閉じる</button>
+  </div>
+  <div class="sheet-body">
+    <p class="specimen" id="specimen" aria-hidden="true">午前7時30分、駅前の小さな喫茶店へ。窓ぎわの席で濃いめのコーヒーを頼み、手帳をひらく。今日やることを三つだけ書き出して、ゆっくり一日をはじめる。</p>
+
+    <div class="ctl" data-range="fontSize"></div>
+    <div class="ctl" data-range="lineHeight"></div>
+    <div class="ctl" data-range="letterSpacing"></div>
+
+    <div class="ctl">
+      <span class="ctl-label" id="fontLabel">書体</span>
+      <div class="fonts" id="fontOptions" role="radiogroup" aria-labelledby="fontLabel"></div>
+    </div>
+
+    <div class="ctl ctl-inline">
+      <span class="ctl-label" id="weightLabel">太さ</span>
+      <div class="seg" role="radiogroup" aria-labelledby="weightLabel">
+        <label><input type="radio" name="weight" value="400"><span>標準</span></label>
+        <label><input type="radio" name="weight" value="700"><span>太字</span></label>
+      </div>
+    </div>
+
+    <div class="ctl ctl-inline">
+      <span class="ctl-label" id="alignLabel">揃え</span>
+      <div class="seg" role="radiogroup" aria-labelledby="alignLabel">
+        <label><input type="radio" name="align" value="left"><span>左揃え</span></label>
+        <label><input type="radio" name="align" value="justify"><span>両端揃え</span></label>
+      </div>
+    </div>
+
+    <div class="ctl" data-range="margin"></div>
+
+    <div class="ctl">
+      <div class="ctl-head">
+        <span class="ctl-label" id="themeLabel">配色</span>
+        <span class="ctl-value" id="themeName"></span>
+      </div>
+      <div class="mode-row">
+        <span class="sub-label" id="modeLabel">表示モード</span>
+        <div class="seg" role="radiogroup" aria-labelledby="modeLabel">
+          <label><input type="radio" name="mode" value="auto"><span>自動</span></label>
+          <label><input type="radio" name="mode" value="light"><span>ライト</span></label>
+          <label><input type="radio" name="mode" value="dark"><span>ダーク</span></label>
+        </div>
+      </div>
+      <p class="theme-group" id="lightGroupLabel">ライトモードの配色<span class="in-use" id="lightInUse" hidden>表示中</span></p>
+      <div class="themes" id="themesLight" role="radiogroup" aria-labelledby="lightGroupLabel"></div>
+      <p class="theme-group" id="darkGroupLabel">ダークモードの配色<span class="in-use" id="darkInUse" hidden>表示中</span></p>
+      <div class="themes" id="themesDark" role="radiogroup" aria-labelledby="darkGroupLabel"></div>
+      <p class="theme-note" id="modeNote"></p>
+    </div>
+
+    <div class="storage">
+      <p class="ctl-label">データの保存</p>
+      <p class="storage-note" id="storageNote"></p>
+      <div class="data-actions">
+        <button type="button" class="data-btn" id="backupBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10"/><path d="M8 10.5l4 4 4-4"/><path d="M5 15.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2.5"/></svg>
+          バックアップを保存
+        </button>
+        <button type="button" class="data-btn" id="restoreBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V5"/><path d="M8 8.5l4-4 4 4"/><path d="M5 15.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2.5"/></svg>
+          バックアップから読み込む
+        </button>
+      </div>
+      <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden>
+  <span id="toastMsg"></span>
+  <button type="button" id="toastBtn" hidden></button>
+</div>
+<div class="sr-only" id="announcer" aria-live="polite"></div>
+<div class="probe-box" aria-hidden="true"><span class="probe" id="probe"></span></div>
+<script>
+(() => {
+  'use strict';
+
+  /* ---------- 設定値 ---------- */
+  const FONTS = {
+    gothic: { label: 'ゴシック', stack: '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic Medium","Meiryo",sans-serif' },
+    mincho: { label: '明朝', stack: '"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP","Noto Serif CJK JP",serif', css: 'Noto+Serif+JP:wght@400;700' },
+    maru: { label: '丸ゴシック', stack: '"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif', css: 'Zen+Maru+Gothic:wght@400;700' },
+    ud: { label: 'UDゴシック', stack: '"BIZ UDPGothic","Hiragino Sans",sans-serif', css: 'BIZ+UDPGothic:wght@400;700' },
+    tegaki: { label: '手書き風', stack: '"Klee One","Hiragino Mincho ProN",serif', css: 'Klee+One:wght@400;600' },
+  };
+
+  const DEFAULTS = { fontSize: 17, lineHeight: 1.8, letterSpacing: 5, margin: 20, font: 'gothic', weight: 400, align: 'left', mode: 'auto', lightTheme: 'shiro', darkTheme: 'sumi' };
+
+  const RANGES = {
+    fontSize: { label: '文字サイズ', less: '小さくする', more: '大きくする', min: 12, max: 40, step: 1, cells: 7, fmt: (v) => v + 'px' },
+    lineHeight: { label: '行間', less: 'せまくする', more: 'ひろくする', min: 1, max: 3, step: 0.05, cells: 8, fmt: (v) => v.toFixed(2) + '倍' },
+    letterSpacing: { label: '字間', less: 'せまくする', more: 'ひろくする', min: -5, max: 50, step: 1, cells: 11, fmt: (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + '%' },
+    margin: { label: '左右の余白', less: 'せまくする', more: 'ひろくする', min: 0, max: 48, step: 2, cells: 6, fmt: (v) => v + 'px' },
+  };
+
+  // 配色：どれも本文は背景に対してコントラスト比 7:1 以上、補助の文字とアクセント色は 4.5:1 以上
+  const THEMES = [
+    { id: 'shiro', name: '白', dark: false, paper: '#FFFFFF', surface: '#F4F4F1', ink: '#1E2227', soft: '#686D74', accent: '#22508F', rule: '#E3E4DF', track: '#D6D8D3' },
+    { id: 'kinari', name: '生成り', dark: false, paper: '#F2ECDD', surface: '#FAF6EC', ink: '#3A3329', soft: '#6C6251', accent: '#2E4E7E', rule: '#DDD2BB', track: '#D6CAB1' },
+    { id: 'sakura', name: '桜', dark: false, paper: '#FBEFF1', surface: '#FFF8F9', ink: '#3B2A30', soft: '#7A5E67', accent: '#A33658', rule: '#EFD7DD', track: '#E6C9D0' },
+    { id: 'wakakusa', name: '若草', dark: false, paper: '#EDF3E3', surface: '#F7FAF1', ink: '#25301E', soft: '#5B6850', accent: '#3D7337', rule: '#D8E2CA', track: '#CAD6B8' },
+    { id: 'sora', name: '空', dark: false, paper: '#E9F1F8', surface: '#F5F9FC', ink: '#1E2935', soft: '#596777', accent: '#1F63A3', rule: '#D2DFEA', track: '#C1D2E0' },
+    { id: 'fuji', name: '藤', dark: false, paper: '#F1EDF8', surface: '#F8F6FC', ink: '#2C2638', soft: '#686078', accent: '#65499E', rule: '#DDD6EA', track: '#CEC6E1' },
+    { id: 'nanohana', name: '菜の花', dark: false, paper: '#FAF4D9', surface: '#FFFBEA', ink: '#3A3420', soft: '#6A6246', accent: '#7A5A00', rule: '#EAE0B9', track: '#DED2A2' },
+    { id: 'hai', name: '灰', dark: false, paper: '#E4E5E2', surface: '#EFF0ED', ink: '#2A2C2F', soft: '#5E6267', accent: '#3B5679', rule: '#CFD1CC', track: '#C3C5C0' },
+    { id: 'kukkiri', name: 'くっきり', dark: false, paper: '#FFFFFF', surface: '#F2F2F2', ink: '#000000', soft: '#333333', accent: '#0033A0', rule: '#9E9E9E', track: '#8A8A8A' },
+    { id: 'sumi', name: '墨', dark: true, paper: '#17191C', surface: '#202327', ink: '#E3E5E8', soft: '#9A9FA7', accent: '#8FB2EC', rule: '#2E3237', track: '#3B3F46' },
+    { id: 'shikkoku', name: '漆黒', dark: true, paper: '#000000', surface: '#121315', ink: '#D6D7D9', soft: '#8A8E94', accent: '#7EA5E6', rule: '#25272A', track: '#333539' },
+    { id: 'kon', name: '紺', dark: true, paper: '#101B2E', surface: '#18253F', ink: '#DCE3EF', soft: '#95A3BA', accent: '#F0C36A', rule: '#25344F', track: '#31415F' },
+    { id: 'kokuban', name: '黒板', dark: true, paper: '#1D3029', surface: '#243A31', ink: '#E5EEE7', soft: '#A0B4A6', accent: '#F2D27B', rule: '#2E493D', track: '#3A594B' },
+    { id: 'kogecha', name: '焦茶', dark: true, paper: '#251D18', surface: '#2F251F', ink: '#EADFD2', soft: '#AA9B8A', accent: '#E3A06A', rule: '#3B3028', track: '#4B3E34' },
+    { id: 'budou', name: '葡萄', dark: true, paper: '#231A2C', surface: '#2C2237', ink: '#E8E0F0', soft: '#A698B6', accent: '#C9A3F0', rule: '#382C45', track: '#473A56' },
+    { id: 'yozakura', name: '夜桜', dark: true, paper: '#1F171A', surface: '#291E22', ink: '#F0E2E6', soft: '#B19BA2', accent: '#F2A6BB', rule: '#382A2F', track: '#48373D' },
+  ];
+  const LIGHT_IDS = new Set(THEMES.filter((t) => !t.dark).map((t) => t.id));
+  const DARK_IDS = new Set(THEMES.filter((t) => t.dark).map((t) => t.id));
+  const MODES = ['auto', 'light', 'dark'];
+  const MODE_NEXT = { auto: 'light', light: 'dark', dark: 'auto' };
+  const MODE_LABEL = { auto: '自動', light: 'ライト', dark: 'ダーク' };
+
+  const KEY = { prefs: 'mojimemo:prefs', notes: 'mojimemo:notes' };
+  const NOTE_LOCAL = 'メモと表示設定は、書くたびにこの端末のブラウザの中へ自動で保存されます。メモの内容がどこかへ送信されることはありません。ブラウザのデータを消去するとメモも消えるので、ときどきバックアップを保存しておくと安心です。';
+  const NOTE_NO_STORAGE = 'この開き方ではブラウザに保存できないため、ページを閉じるとメモが消えてしまいます。バックアップを保存するか、ブラウザで開き直してください。';
+
+  /* ---------- 要素 ---------- */
+  const $ = (id) => document.getElementById(id);
+  const root = document.documentElement;
+  const appEl = document.querySelector('.app');
+  const listView = $('listView');
+  const editorView = $('editorView');
+  const listEl = $('noteList');
+  const listState = $('listState');
+  const listFoot = document.querySelector('.list-foot');
+  const stateTitle = $('stateTitle');
+  const stateSub = $('stateSub');
+  const countEl = $('count');
+  const searchInput = $('search');
+  const editor = $('editor');
+  const measure = $('measure');
+  const probe = $('probe');
+  const grow = $('grow');
+  const charCount = $('charCount');
+  const saveState = $('saveState');
+  const editorHead = $('editorHead');
+  const sheet = $('sheet');
+  const sheetBody = document.querySelector('.sheet-body');
+  const backdrop = $('backdrop');
+  const specimen = $('specimen');
+  const storageNote = $('storageNote');
+  const restoreInput = $('restoreInput');
+  const themeName = $('themeName');
+  const modeNote = $('modeNote');
+  const modeBtn = $('modeBtn');
+  const lightInUse = $('lightInUse');
+  const darkInUse = $('darkInUse');
+  const themesLightEl = $('themesLight');
+  const themesDarkEl = $('themesDark');
+  const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+  const toast = $('toast');
+  const toastMsg = $('toastMsg');
+  const toastBtn = $('toastBtn');
+  const announcer = $('announcer');
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  const coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+
+  /* ---------- 保存（この端末のブラウザの中） ---------- */
+  const storageOK = (() => {
+    try {
+      const k = 'mojimemo:test';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  })();
+
+  function lsGet(k) {
+    try {
+      const v = localStorage.getItem(k);
+      return v == null ? null : JSON.parse(v);
+    } catch (_) {
+      return null;
+    }
+  }
+  function lsSet(k, v) {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function num(v, r, d) {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    if (!Number.isFinite(n)) return d;
+    const stepped = Math.round((n - r.min) / r.step) * r.step + r.min;
+    return Number(Math.min(r.max, Math.max(r.min, stepped)).toFixed(2));
+  }
+  function cleanPrefs(p) {
+    p = p && typeof p === 'object' ? p : {};
+    let lightTheme = LIGHT_IDS.has(p.lightTheme) ? p.lightTheme : DEFAULTS.lightTheme;
+    let darkTheme = DARK_IDS.has(p.darkTheme) ? p.darkTheme : DEFAULTS.darkTheme;
+    // 以前の版（配色を1つだけ選ぶ形）の保存データは、明るい配色ならライト用、暗い配色ならダーク用として引き継ぐ
+    if (typeof p.theme === 'string' && p.lightTheme === undefined && p.darkTheme === undefined) {
+      if (LIGHT_IDS.has(p.theme)) lightTheme = p.theme;
+      if (DARK_IDS.has(p.theme)) darkTheme = p.theme;
+    }
+    return {
+      fontSize: num(p.fontSize, RANGES.fontSize, DEFAULTS.fontSize),
+      lineHeight: num(p.lineHeight, RANGES.lineHeight, DEFAULTS.lineHeight),
+      letterSpacing: num(p.letterSpacing, RANGES.letterSpacing, DEFAULTS.letterSpacing),
+      margin: num(p.margin, RANGES.margin, DEFAULTS.margin),
+      font: Object.prototype.hasOwnProperty.call(FONTS, p.font) ? p.font : DEFAULTS.font,
+      weight: Number(p.weight) === 700 ? 700 : 400,
+      align: p.align === 'justify' ? 'justify' : 'left',
+      mode: MODES.includes(p.mode) ? p.mode : DEFAULTS.mode,
+      lightTheme,
+      darkTheme,
+    };
+  }
+  function cleanNote(raw) {
+    if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id) return null;
+    const createdAt = Number.isFinite(raw.createdAt) ? raw.createdAt : 0;
+    return {
+      id: raw.id,
+      body: typeof raw.body === 'string' ? raw.body : '',
+      createdAt,
+      updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : createdAt,
+    };
+  }
+  function readNotes() {
+    const arr = lsGet(KEY.notes);
+    return Array.isArray(arr) ? arr.map(cleanNote).filter(Boolean) : [];
+  }
+  const samePrefs = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const dateTag = (d) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+
+  function makeId() {
+    try {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    } catch (_) { /* 下で作る */ }
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  }
+
+  /* ---------- 状態 ---------- */
+  let prefs = cleanPrefs(lsGet(KEY.prefs));
+  let notes = new Map(readNotes().map((n) => [n.id, n]));
+  let currentId = null;
+  let draftCreatedAt = 0;
+  let listScroll = 0;
+  let saveTimer = null;
+  let prefsTimer = null;
+  let padBottom = 0;
+  let lastInputAt = 0;
+
+  function setSaveState(state) {
+    saveState.dataset.state = state;
+    saveState.textContent = state === 'saving' ? '保存中…' : state === 'saved' ? '保存済み' : state === 'error' ? '保存できません' : '';
+  }
+
+  function saveNotes() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    const ok = lsSet(KEY.notes, Array.from(notes.values()));
+    if (ok) {
+      if (currentId && notes.has(currentId)) setSaveState('saved');
+    } else {
+      if (currentId) setSaveState('error');
+      notify(storageOK ? '保存できませんでした。ブラウザの空き容量を確認してください。' : NOTE_NO_STORAGE);
+    }
+    return ok;
+  }
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNotes, 400);
+  }
+  function savePrefs() {
+    clearTimeout(prefsTimer);
+    prefsTimer = null;
+    lsSet(KEY.prefs, prefs);
+  }
+  function schedulePrefsSave() {
+    clearTimeout(prefsTimer);
+    prefsTimer = setTimeout(savePrefs, 400);
+  }
+  function flushAll() {
+    if (saveTimer !== null) saveNotes();
+    if (prefsTimer !== null) savePrefs();
+  }
+
+  /* ---------- 表示設定のコントロールを組み立てる ---------- */
+  const ranges = {};
+  document.querySelectorAll('[data-range]').forEach((ctl) => {
+    const key = ctl.dataset.range;
+    const r = RANGES[key];
+    ctl.innerHTML =
+      '<div class="ctl-head"><label class="ctl-label" for="r-' + key + '">' + r.label + '</label>' +
+      '<span class="ctl-value" aria-hidden="true"></span></div>' +
+      '<div class="ctl-row">' +
+      '<button type="button" class="step" data-key="' + key + '" data-dir="-1" aria-label="' + r.label + 'を' + r.less + '">−</button>' +
+      '<div class="gauge"><span class="gauge-ticks" aria-hidden="true"></span><span class="gauge-notch" aria-hidden="true"></span>' +
+      '<input type="range" id="r-' + key + '" min="' + r.min + '" max="' + r.max + '" step="' + r.step + '"></div>' +
+      '<button type="button" class="step" data-key="' + key + '" data-dir="1" aria-label="' + r.label + 'を' + r.more + '">+</button>' +
+      '</div>';
+    const gauge = ctl.querySelector('.gauge');
+    gauge.style.setProperty('--cells', String(r.cells));
+    gauge.style.setProperty('--def', ((DEFAULTS[key] - r.min) / (r.max - r.min)).toFixed(4));
+    const input = ctl.querySelector('input');
+    ranges[key] = {
+      input,
+      out: ctl.querySelector('.ctl-value'),
+      minus: ctl.querySelector('[data-dir="-1"]'),
+      plus: ctl.querySelector('[data-dir="1"]'),
+    };
+    input.addEventListener('input', () => setPref(key, parseFloat(input.value)));
+  });
+
+  const fontWrap = $('fontOptions');
+  Object.keys(FONTS).forEach((key) => {
+    const label = document.createElement('label');
+    label.className = 'font-opt';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'font';
+    input.value = key;
+    const box = document.createElement('span');
+    const sample = document.createElement('b');
+    sample.textContent = 'あア永';
+    sample.style.fontFamily = FONTS[key].stack;
+    sample.setAttribute('aria-hidden', 'true');
+    const name = document.createElement('small');
+    name.textContent = FONTS[key].label;
+    box.append(sample, name);
+    label.append(input, box);
+    fontWrap.appendChild(label);
+  });
+
+  function themeOption(group, id, name) {
+    const label = document.createElement('label');
+    label.className = 'theme-opt';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = group;
+    input.value = id;
+    const box = document.createElement('span');
+    const sw = document.createElement('i');
+    sw.className = 'sw';
+    sw.setAttribute('aria-hidden', 'true');
+    const caption = document.createElement('small');
+    caption.textContent = name;
+    box.append(sw, caption);
+    label.append(input, box);
+    return { label, sw };
+  }
+  THEMES.forEach((t) => {
+    const opt = themeOption(t.dark ? 'darkTheme' : 'lightTheme', t.id, t.name);
+    opt.sw.textContent = 'あ';
+    opt.sw.style.background = t.paper;
+    opt.sw.style.color = t.ink;
+    opt.sw.style.borderColor = t.rule;
+    opt.sw.style.setProperty('--dot', t.accent);
+    $(t.dark ? 'themesDark' : 'themesLight').appendChild(opt.label);
+  });
+
+  /* ---------- 配色 ---------- */
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgba(hex, alpha) {
+    return 'rgba(' + hexToRgb(hex).join(',') + ',' + alpha + ')';
+  }
+  function mix(a, b, weight) {
+    const x = hexToRgb(a);
+    const y = hexToRgb(b);
+    return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * weight).toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+  const darkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  const onlyKeyword = !!(window.CSS && CSS.supports && CSS.supports('color-scheme', 'only light'));
+
+  // 端末（または、このページを表示しているアプリ）が暗い表示かどうか
+  function systemIsDark() {
+    const host = root.getAttribute('data-theme');
+    if (host === 'dark') return true;
+    if (host === 'light') return false;
+    return !!(darkQuery && darkQuery.matches);
+  }
+  function isDarkNow() {
+    return prefs.mode === 'dark' || (prefs.mode === 'auto' && systemIsDark());
+  }
+  // ライトモードではライト用の配色、ダークモードではダーク用の配色を必ず使う
+  function activeTheme() {
+    const id = isDarkNow() ? prefs.darkTheme : prefs.lightTheme;
+    return THEMES.find((x) => x.id === id) || THEMES[0];
+  }
+
+  function applyTheme() {
+    const t = activeTheme();
+    const s = root.style;
+    const vars = {
+      '--paper': t.paper,
+      '--surface': t.surface,
+      '--ink': t.ink,
+      '--ink-soft': t.soft,
+      '--accent': t.accent,
+      '--rule': t.rule,
+      '--track': t.track,
+      '--fill': rgba(t.ink, t.dark ? 0.1 : 0.07),
+      '--seg-on': t.dark ? mix(t.surface, t.ink, 0.16) : '#FFFFFF',
+      '--on-accent': t.dark ? t.paper : '#FFFFFF',
+      '--accent-soft': rgba(t.accent, t.dark ? 0.16 : 0.1),
+      '--tick': rgba(t.soft, 0.55),
+      '--shadow': t.dark ? '0 -12px 40px rgba(0,0,0,.5)' : '0 -12px 40px rgba(18,22,28,.16)',
+      '--scroll-thumb': t.soft,
+      '--scroll-thumb-hover': mix(t.soft, t.ink, 0.45),
+      '--scroll-track': t.rule,
+      '--scroll-halo': rgba(t.paper, 0.85),
+    };
+    Object.keys(vars).forEach((k) => s.setProperty(k, vars[k]));
+    // 「only」をつけて、アプリ内のブラウザなどが明るいページを勝手に暗く作り替えないようにする
+    const scheme = (onlyKeyword ? 'only ' : '') + (t.dark ? 'dark' : 'light');
+    s.setProperty('color-scheme', scheme);
+    if (colorSchemeMeta) colorSchemeMeta.setAttribute('content', scheme);
+    if (themeMeta) themeMeta.setAttribute('content', t.paper);
+  }
+
+  function onSystemChange() {
+    if (prefs.mode !== 'auto') return;
+    applyTheme();
+    syncControls();
+  }
+  if (darkQuery) {
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemChange);
+    else if (darkQuery.addListener) darkQuery.addListener(onSystemChange);
+  }
+  if (window.MutationObserver) {
+    new MutationObserver(onSystemChange).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+
+  /* ---------- 画面の幅と文字の大きさに合わせる ---------- */
+  // 全角1文字ぶんの送り（文字の幅＋字間）を実際に測る。
+  // 10文字と20文字の差から求めるので、行末の字間の扱いがブラウザごとに違っても正しく出る。
+  function charMetrics() {
+    probe.textContent = '国'.repeat(10);
+    const w10 = probe.getBoundingClientRect().width;
+    probe.textContent = '国'.repeat(20);
+    const w20 = probe.getBoundingClientRect().width;
+    const pitch = (w20 - w10) / 10;
+    return { pitch, trail: w10 - pitch * 10 };
+  }
+
+  // 1行にちょうど何文字か収まるように、余った幅を左右に振り分ける（左右の余白の設定値は最低限の余白になる）
+  function columnPads(width, metrics) {
+    const margin = prefs.margin;
+    const { pitch, trail } = metrics;
+    const avail = width - margin * 2;
+    if (!(pitch > 1) || !(avail > pitch * 2)) return [margin, margin];
+    // 測った送りには 1/64px ほどの丸めが入るので、少しだけ余裕を見る（余白が最大 0.25px ほど狭まる程度）
+    const count = Math.floor((avail - trail + 0.5) / pitch);
+    const used = count * pitch + trail;
+    const spacing = (prefs.fontSize * prefs.letterSpacing) / 100;
+    const visible = count * pitch - spacing;
+    let left = (width - visible) / 2;
+    let right = width - left - used - 0.75;
+    if (right < 0) {
+      left = Math.max(0, left + right);
+      right = 0;
+    }
+    return [Math.max(0, left), right];
+  }
+
+  function setPads(el, pads) {
+    el.style.setProperty('--pad-l', pads[0].toFixed(2) + 'px');
+    el.style.setProperty('--pad-r', pads[1].toFixed(2) + 'px');
+  }
+
+  // 本文の高さを、同じ組版の見えない textarea で測ってぴったりにする
+  function fitEditor() {
+    if (editorView.hidden) return;
+    if (measure.value !== editor.value) measure.value = editor.value;
+    editor.style.height = Math.ceil(measure.scrollHeight + padBottom + 1) + 'px';
+  }
+
+  function applyLayout() {
+    const metrics = charMetrics();
+    const width = appEl.clientWidth;
+    if (width > 0) setPads(grow, columnPads(width, metrics));
+    if (!sheet.hidden && specimen.offsetParent !== null && specimen.clientWidth > 0) {
+      setPads(specimen, columnPads(specimen.clientWidth, metrics));
+    }
+    if (!editorView.hidden) {
+      padBottom = parseFloat(getComputedStyle(editor).paddingBottom) || 0;
+      fitEditor();
+    }
+  }
+
+  /* ---------- 組版の反映 ---------- */
+  const fontLinks = new Set();
+  function loadFont(key) {
+    const f = FONTS[key];
+    if (!f || !f.css || fontLinks.has(key)) return;
+    fontLinks.add(key);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.crossOrigin = 'anonymous';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + f.css + '&display=swap';
+    document.head.appendChild(link);
+  }
+  if (document.fonts) {
+    if (typeof document.fonts.addEventListener === 'function') {
+      document.fonts.addEventListener('loadingdone', () => applyLayout());
+    }
+    if (document.fonts.ready) document.fonts.ready.then(() => applyLayout());
+  }
+
+  function applyPrefs() {
+    const s = root.style;
+    s.setProperty('--note-font', FONTS[prefs.font].stack);
+    s.setProperty('--note-size', prefs.fontSize + 'px');
+    s.setProperty('--note-lh', String(prefs.lineHeight));
+    s.setProperty('--note-ls', prefs.letterSpacing / 100 + 'em');
+    s.setProperty('--note-weight', String(prefs.weight));
+    s.setProperty('--note-align', prefs.align);
+    applyTheme();
+    loadFont(prefs.font);
+    syncControls();
+    applyLayout();
+  }
+
+  function syncControls() {
+    Object.keys(ranges).forEach((key) => {
+      const { input, out, minus, plus } = ranges[key];
+      const r = RANGES[key];
+      const v = prefs[key];
+      if (parseFloat(input.value) !== v) input.value = String(v);
+      input.style.setProperty('--frac', ((v - r.min) / (r.max - r.min)).toFixed(4));
+      input.setAttribute('aria-valuetext', r.fmt(v));
+      out.textContent = r.fmt(v);
+      minus.disabled = v <= r.min;
+      plus.disabled = v >= r.max;
+    });
+    sheet.querySelectorAll('input[type="radio"]').forEach((el) => {
+      el.checked = String(prefs[el.name]) === el.value;
+    });
+    const dark = isDarkNow();
+    themeName.textContent = activeTheme().name + (dark ? '（ダーク）' : '（ライト）');
+    lightInUse.hidden = dark;
+    darkInUse.hidden = !dark;
+    themesLightEl.classList.toggle('inactive', dark);
+    themesDarkEl.classList.toggle('inactive', !dark);
+    modeNote.textContent = prefs.mode === 'auto'
+      ? '「自動」では、端末の設定に合わせてライトモードとダークモードが切り替わります（いまは' + (dark ? 'ダーク' : 'ライト') + 'モード）。'
+      : prefs.mode === 'light'
+        ? '端末の設定にかかわらず、いつもライトモードで表示します。'
+        : '端末の設定にかかわらず、いつもダークモードで表示します。';
+    modeBtn.dataset.mode = prefs.mode;
+    modeBtn.setAttribute('aria-label', '表示モード：' + MODE_LABEL[prefs.mode] + '（押すと' + MODE_LABEL[MODE_NEXT[prefs.mode]] + 'に切り替え）');
+  }
+
+  function setPref(key, value) {
+    const next = cleanPrefs(Object.assign({}, prefs, { [key]: value }));
+    if (samePrefs(next, prefs)) {
+      syncControls();
+      return;
+    }
+    prefs = next;
+    applyPrefs();
+    schedulePrefsSave();
+  }
+
+  // 文字組みだけを標準に戻す（配色はそのまま）
+  function resetPrefs() {
+    const before = prefs;
+    const def = cleanPrefs(Object.assign({}, DEFAULTS, { mode: prefs.mode, lightTheme: prefs.lightTheme, darkTheme: prefs.darkTheme }));
+    if (samePrefs(before, def)) return;
+    prefs = def;
+    applyPrefs();
+    schedulePrefsSave();
+    showToast('文字組みを標準に戻しました', '元に戻す', () => {
+      prefs = before;
+      applyPrefs();
+      schedulePrefsSave();
+    });
+  }
+
+  /* ---------- 一覧 ---------- */
+  function splitNote(body) {
+    const lines = body.split('\n');
+    let i = 0;
+    while (i < lines.length && !lines[i].trim()) i++;
+    const title = i < lines.length ? lines[i].trim().slice(0, 100) : '';
+    const snippet = lines.slice(i + 1, i + 12).map((l) => l.trim()).filter(Boolean).join(' ').slice(0, 140);
+    return { title, snippet };
+  }
+
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const same = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    if (same(d, now)) return d.getHours() + ':' + pad2(d.getMinutes());
+    if (same(d, new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1))) return '昨日';
+    if (d.getFullYear() === now.getFullYear()) return d.getMonth() + 1 + '月' + d.getDate() + '日';
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+  }
+
+  function noteRow(n) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'note-row';
+    btn.dataset.id = n.id;
+    const { title, snippet } = splitNote(n.body);
+    const t = document.createElement('span');
+    t.className = 'note-title' + (title ? '' : ' is-empty');
+    t.textContent = title || '空のメモ';
+    const meta = document.createElement('span');
+    meta.className = 'note-meta';
+    const date = document.createElement('span');
+    date.className = 'note-date';
+    date.textContent = formatDate(n.updatedAt);
+    const snip = document.createElement('span');
+    snip.className = 'note-snippet';
+    snip.textContent = snippet;
+    meta.append(date, snip);
+    btn.append(t, meta);
+    li.appendChild(btn);
+    return li;
+  }
+
+  function renderList() {
+    const raw = searchInput.value.trim();
+    const q = raw.toLowerCase();
+    const all = Array.from(notes.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+    const shown = q ? all.filter((n) => n.body.toLowerCase().includes(q)) : all;
+    const frag = document.createDocumentFragment();
+    shown.forEach((n) => frag.appendChild(noteRow(n)));
+    listEl.replaceChildren(frag);
+
+    let title = '';
+    let sub = '';
+    if (!shown.length) {
+      if (!all.length) {
+        title = 'メモはまだありません';
+        sub = '「新しいメモ」から書きはじめましょう。';
+      } else {
+        title = '見つかりませんでした';
+        sub = '「' + raw + '」を含むメモはありません。';
+      }
+    }
+    listState.hidden = !title;
+    stateTitle.textContent = title;
+    stateSub.textContent = sub;
+    stateSub.hidden = !sub;
+    countEl.textContent = all.length + '件のメモ';
+  }
+
+  /* ---------- 編集 ---------- */
+  function updateCount() {
+    let n = 0;
+    for (const ch of editor.value) if (ch !== '\n' && ch !== '\r') n++;
+    charCount.textContent = n.toLocaleString('ja-JP') + '文字';
+  }
+
+  function openNote(id, focusEditor) {
+    const n = notes.get(id);
+    currentId = id;
+    draftCreatedAt = n ? n.createdAt : Date.now();
+    listScroll = window.scrollY;
+    editor.value = n ? n.body : '';
+    listView.hidden = true;
+    editorView.hidden = false;
+    editorView.classList.remove('typing');
+    window.scrollTo(0, 0);
+    editorHead.classList.remove('scrolled');
+    setSaveState(n ? 'saved' : '');
+    applyLayout();
+    updateCount();
+    if (focusEditor) editor.focus();
+    else $('backBtn').focus({ preventScroll: true });
+  }
+
+  function leaveEditor() {
+    if (document.activeElement === editor) editor.blur();
+    const id = currentId;
+    if (id) {
+      const n = notes.get(id);
+      if (n && !n.body.trim()) {
+        notes.delete(id);
+        scheduleSave();
+      }
+    }
+    flushAll();
+    currentId = null;
+    editorView.hidden = true;
+    listView.hidden = false;
+    renderList();
+    window.scrollTo(0, listScroll);
+    if (id && notes.has(id)) {
+      const rowBtn = listEl.querySelector('[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
+      if (rowBtn) rowBtn.focus({ preventScroll: true });
+    }
+  }
+
+  function deleteCurrent() {
+    if (document.activeElement === editor) editor.blur();
+    const id = currentId;
+    const n = id ? notes.get(id) : null;
+    if (n) {
+      const copy = Object.assign({}, n);
+      notes.delete(id);
+      scheduleSave();
+      if (copy.body.trim()) {
+        showToast('メモを削除しました', '元に戻す', () => {
+          notes.set(copy.id, copy);
+          saveNotes();
+          if (editorView.hidden) renderList();
+        });
+      }
+    }
+    currentId = null;
+    leaveEditor();
+  }
+
+  function refreshEditor() {
+    const id = currentId;
+    if (!id || document.activeElement === editor) return;
+    const n = notes.get(id);
+    if (n && n.body !== editor.value) {
+      editor.value = n.body;
+      fitEditor();
+      updateCount();
+    }
+  }
+
+  /* ---------- ファイルに保存・バックアップ ---------- */
+  // スマホ・タブレットは共有シート（「ファイルに保存」を選べる）、パソコンはダウンロードで保存する
+  async function saveFile(filename, text, type) {
+    const blob = new Blob([text], { type });
+    if (coarse && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && typeof File === 'function') {
+      try {
+        const file = new File([blob], filename, { type });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          return 'shared';
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return 'cancelled';
+        // 共有が使えないときは、下のダウンロードで保存する
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return 'downloaded';
+  }
+
+  function fileNameFor(body) {
+    const { title } = splitNote(body);
+    const cleaned = title
+      .replace(/[\\/:*?"<>|\u0000-\u001F\u007F]/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/^[.\s]+|[.\s]+$/g, '')
+      .slice(0, 40);
+    return (cleaned || 'メモ_' + dateTag(new Date())) + '.txt';
+  }
+
+  async function saveCurrentNoteFile() {
+    const body = editor.value;
+    if (!body.trim()) {
+      showToast('保存する内容がまだありません');
+      return;
+    }
+    flushAll();
+    const name = fileNameFor(body);
+    const result = await saveFile(name, body, 'text/plain');
+    if (result === 'downloaded') showToast('「' + name + '」を保存しました');
+    else if (result === 'shared') showToast('「' + name + '」を書き出しました');
+  }
+
+  async function saveBackup() {
+    flushAll();
+    const list = Array.from(notes.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+    if (!list.length) {
+      showToast('バックアップするメモがありません');
+      return;
+    }
+    const data = { app: 'mojimemo', version: 1, exportedAt: new Date().toISOString(), notes: list, prefs };
+    const name = '文字組みメモ_バックアップ_' + dateTag(new Date()) + '.json';
+    const result = await saveFile(name, JSON.stringify(data, null, 2), 'application/json');
+    if (result === 'downloaded') showToast('バックアップ（' + list.length + '件）を保存しました');
+    else if (result === 'shared') showToast('バックアップ（' + list.length + '件）を書き出しました');
+  }
+
+  // 読み込むときは、手元にないメモを足し、同じメモは新しいほうを残す（手元のメモは消さない）
+  function importBackup(text) {
+    let data = null;
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      data = null;
+    }
+    const list = data && data.app === 'mojimemo' && Array.isArray(data.notes) ? data.notes.map(cleanNote).filter(Boolean) : null;
+    if (!list) {
+      showToast('文字組みメモのバックアップファイルではないようです');
+      return;
+    }
+    let added = 0;
+    let updated = 0;
+    list.forEach((n) => {
+      const current = notes.get(n.id);
+      if (!current) {
+        notes.set(n.id, n);
+        added++;
+      } else if (n.updatedAt > current.updatedAt) {
+        notes.set(n.id, n);
+        updated++;
+      }
+    });
+    if (!added && !updated) {
+      showToast('新しく読み込むメモはありませんでした');
+      return;
+    }
+    saveNotes();
+    if (editorView.hidden) renderList();
+    else refreshEditor();
+    showToast('メモを読み込みました（追加 ' + added + '件・更新 ' + updated + '件）');
+  }
+
+  /* ---------- 見やすいスクロールバー（スマホ・タブレット用） ---------- */
+  function createScrollbar(options) {
+    const bar = document.createElement('div');
+    bar.className = 'scrollbar ' + options.className;
+    bar.setAttribute('aria-hidden', 'true');
+    bar.hidden = true;
+    const thumb = document.createElement('div');
+    thumb.className = 'scroll-thumb';
+    bar.appendChild(thumb);
+    options.parent.appendChild(bar);
+
+    let hideTimer = null;
+    let frame = 0;
+    let drag = null;
+
+    function update() {
+      const m = options.metrics();
+      if (!m || m.max < 24 || m.height < 80) {
+        bar.hidden = true;
+        bar.classList.remove('show');
+        return false;
+      }
+      bar.hidden = false;
+      const thumbHeight = Math.max(44, Math.min(m.height, (m.height * m.viewport) / (m.viewport + m.max)));
+      const y = (m.height - thumbHeight) * Math.min(1, Math.max(0, m.scroll / m.max));
+      bar.style.top = m.top + 'px';
+      bar.style.height = m.height + 'px';
+      thumb.style.height = thumbHeight.toFixed(1) + 'px';
+      thumb.style.transform = 'translateY(' + y.toFixed(1) + 'px)';
+      return true;
+    }
+    function scheduleHide() {
+      clearTimeout(hideTimer);
+      if (!drag) hideTimer = setTimeout(() => bar.classList.remove('show'), 1500);
+    }
+    function reveal() {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (update()) {
+          bar.classList.add('show');
+          scheduleHide();
+        }
+      });
+    }
+
+    thumb.addEventListener('pointerdown', (e) => {
+      const m = options.metrics();
+      if (!m || !bar.classList.contains('show')) return;
+      e.preventDefault();
+      try { thumb.setPointerCapture(e.pointerId); } catch (_) { /* 何もしない */ }
+      const thumbHeight = thumb.getBoundingClientRect().height;
+      drag = { id: e.pointerId, y: e.clientY, scroll: m.scroll, ratio: m.max / Math.max(1, m.height - thumbHeight) };
+      clearTimeout(hideTimer);
+      bar.classList.add('dragging');
+    });
+    thumb.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      e.preventDefault();
+      options.scrollTo(drag.scroll + (e.clientY - drag.y) * drag.ratio);
+      reveal();
+    });
+    const endDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag = null;
+      bar.classList.remove('dragging');
+      scheduleHide();
+    };
+    thumb.addEventListener('pointerup', endDrag);
+    thumb.addEventListener('pointercancel', endDrag);
+
+    return { reveal, update };
+  }
+
+  if (coarse) {
+    const pageBar = createScrollbar({
+      parent: document.body,
+      className: 'page-scrollbar',
+      metrics: () => {
+        const viewport = window.innerHeight;
+        const max = document.documentElement.scrollHeight - viewport;
+        let top = 0;
+        let bottom = 0;
+        if (!editorView.hidden) top = Math.max(0, editorHead.getBoundingClientRect().bottom);
+        else bottom = Math.max(0, viewport - listFoot.getBoundingClientRect().top);
+        return { top: top + 4, height: viewport - top - bottom - 8, scroll: window.scrollY, max, viewport };
+      },
+      scrollTo: (y) => window.scrollTo(0, y),
+    });
+    const sheetBar = createScrollbar({
+      parent: sheet,
+      className: 'sheet-scrollbar',
+      metrics: () => {
+        if (sheet.hidden) return null;
+        return {
+          top: sheetBody.offsetTop + 4,
+          height: sheetBody.clientHeight - 8,
+          scroll: sheetBody.scrollTop,
+          max: sheetBody.scrollHeight - sheetBody.clientHeight,
+          viewport: sheetBody.clientHeight,
+        };
+      },
+      scrollTo: (y) => { sheetBody.scrollTop = y; },
+    });
+    // 文字を打っていて自動でスクロールしたときは出さない（書く邪魔にならないように）
+    window.addEventListener('scroll', () => {
+      if (Date.now() - lastInputAt > 400) pageBar.reveal();
+    }, { passive: true });
+    sheetBody.addEventListener('scroll', () => sheetBar.reveal(), { passive: true });
+    window.addEventListener('resize', () => { pageBar.update(); sheetBar.update(); });
+  }
+
+  /* ---------- 表示設定シート ---------- */
+  let sheetOpener = null;
+  let sheetHideTimer = null;
+  const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function openSheet(opener) {
+    if (document.activeElement === editor) editor.blur();
+    Object.keys(FONTS).forEach(loadFont);
+    sheetOpener = opener || null;
+    sheet.dataset.context = editorView.hidden ? 'list' : 'editor';
+    clearTimeout(sheetHideTimer);
+    sheet.hidden = false;
+    backdrop.hidden = false;
+    applyLayout();
+    sheet.getBoundingClientRect();
+    sheet.classList.add('open');
+    $('sheetTitle').focus({ preventScroll: true });
+  }
+
+  function closeSheet() {
+    if (sheet.hidden) return;
+    sheet.classList.remove('open');
+    backdrop.hidden = true;
+    savePrefs();
+    clearTimeout(sheetHideTimer);
+    sheetHideTimer = setTimeout(() => { sheet.hidden = true; }, reduceMotion() ? 0 : 340);
+    if (sheetOpener && document.contains(sheetOpener) && sheetOpener.offsetParent !== null) {
+      sheetOpener.focus({ preventScroll: true });
+    }
+  }
+
+  /* ---------- お知らせ ---------- */
+  let toastTimer = null;
+  let toastAction = null;
+  function showToast(msg, actionLabel, action) {
+    clearTimeout(toastTimer);
+    toastMsg.textContent = msg;
+    announcer.textContent = msg;
+    toastAction = action || null;
+    toastBtn.hidden = !action;
+    if (action) toastBtn.textContent = actionLabel;
+    toast.hidden = false;
+    toast.getBoundingClientRect();
+    toast.classList.add('show');
+    toastTimer = setTimeout(hideToast, action ? 6000 : 4000);
+  }
+  function hideToast() {
+    clearTimeout(toastTimer);
+    toast.classList.remove('show');
+    toastAction = null;
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 250);
+  }
+  let lastNotice = '';
+  let lastNoticeAt = 0;
+  function notify(msg) {
+    const now = Date.now();
+    if (msg === lastNotice && now - lastNoticeAt < 60000) return;
+    lastNotice = msg;
+    lastNoticeAt = now;
+    showToast(msg);
+  }
+
+  /* ---------- 操作 ---------- */
+  $('newBtn').addEventListener('click', () => {
+    if (searchInput.value) searchInput.value = '';
+    openNote(makeId(), true);
+  });
+  $('backBtn').addEventListener('click', leaveEditor);
+  $('deleteBtn').addEventListener('click', deleteCurrent);
+  $('saveFileBtn').addEventListener('click', saveCurrentNoteFile);
+  $('doneBtn').addEventListener('mousedown', (e) => e.preventDefault());
+  $('doneBtn').addEventListener('click', () => editor.blur());
+  $('closeSheetBtn').addEventListener('click', closeSheet);
+  $('resetBtn').addEventListener('click', resetPrefs);
+  // 一覧の右上のボタンで、自動 → ライト → ダーク の順に切り替える
+  modeBtn.addEventListener('click', () => {
+    const next = MODE_NEXT[prefs.mode] || 'light';
+    setPref('mode', next);
+    showToast(next === 'auto'
+      ? '表示モードを「自動」にしました（いまは' + (isDarkNow() ? 'ダーク' : 'ライト') + 'モード）'
+      : MODE_LABEL[next] + 'モードで表示します');
+  });
+  $('backupBtn').addEventListener('click', saveBackup);
+  $('restoreBtn').addEventListener('click', () => {
+    restoreInput.value = '';
+    restoreInput.click();
+  });
+  restoreInput.addEventListener('change', () => {
+    const file = restoreInput.files && restoreInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => importBackup(String(reader.result || ''));
+    reader.onerror = () => showToast('ファイルを読み込めませんでした');
+    reader.readAsText(file);
+  });
+  backdrop.addEventListener('click', closeSheet);
+  toastBtn.addEventListener('click', () => {
+    const fn = toastAction;
+    hideToast();
+    if (fn) fn();
+  });
+
+  listEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.note-row');
+    if (b) openNote(b.dataset.id, false);
+  });
+  searchInput.addEventListener('input', renderList);
+  searchInput.addEventListener('search', renderList);
+
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-open-settings]');
+    if (b) openSheet(b);
+  });
+
+  sheet.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-dir]');
+    if (!b || b.disabled) return;
+    const key = b.dataset.key;
+    setPref(key, prefs[key] + Number(b.dataset.dir) * RANGES[key].step);
+  });
+  sheet.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.type !== 'radio') return;
+    setPref(t.name, t.name === 'weight' ? Number(t.value) : t.value);
+    // いま表示していないほうのモードの配色を選んだときは、いつ使われるかを知らせる
+    if ((t.name === 'lightTheme' && isDarkNow()) || (t.name === 'darkTheme' && !isDarkNow())) {
+      const picked = THEMES.find((x) => x.id === t.value);
+      if (picked) showToast((t.name === 'lightTheme' ? 'ライトモード' : 'ダークモード') + 'のときは「' + picked.name + '」で表示します');
+    }
+  });
+
+  editor.addEventListener('input', () => {
+    lastInputAt = Date.now();
+    fitEditor();
+    updateCount();
+    const id = currentId;
+    if (!id) return;
+    const prev = notes.get(id);
+    if (!prev && !editor.value.trim()) return; // 何も書いていない新しいメモはまだ作らない
+    notes.set(id, {
+      id,
+      body: editor.value,
+      createdAt: prev ? prev.createdAt : draftCreatedAt,
+      updatedAt: Date.now(),
+    });
+    setSaveState('saving');
+    scheduleSave();
+  });
+  editor.addEventListener('focus', () => editorView.classList.add('typing'));
+  editor.addEventListener('blur', () => {
+    editorView.classList.remove('typing');
+    flushAll();
+  });
+
+  // 同じページを別のタブで開いて書き換えたときは、手元で書きかけていなければ取り込む
+  window.addEventListener('storage', (e) => {
+    if (e.key === KEY.notes) {
+      if (saveTimer !== null || (currentId && document.activeElement === editor)) return;
+      notes = new Map(readNotes().map((n) => [n.id, n]));
+      if (editorView.hidden) renderList();
+      else refreshEditor();
+    } else if (e.key === KEY.prefs) {
+      if (prefsTimer !== null) return;
+      const p = cleanPrefs(lsGet(KEY.prefs));
+      if (!samePrefs(p, prefs)) {
+        prefs = p;
+        applyPrefs();
+      }
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !sheet.hidden) {
+      e.preventDefault();
+      closeSheet();
+    }
+    // パソコンの Ctrl+S（Mac は ⌘S）でも保存できる
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      flushAll();
+      showToast(storageOK ? '保存しました' : NOTE_NO_STORAGE);
+    }
+  });
+  window.addEventListener('scroll', () => {
+    if (!editorView.hidden) editorHead.classList.toggle('scrolled', window.scrollY > 2);
+  }, { passive: true });
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(applyLayout, 120);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushAll();
+  });
+  window.addEventListener('pagehide', flushAll);
+
+  // ホーム画面に追加したとき、電波がなくても開けるようにする（ファイルを直接開いたときは使わない）
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+
+  /* ---------- はじめる ---------- */
+  storageNote.textContent = storageOK ? NOTE_LOCAL : NOTE_NO_STORAGE;
+  applyPrefs();
+  renderList();
+})();
+</script>
+</body>
+</html>
